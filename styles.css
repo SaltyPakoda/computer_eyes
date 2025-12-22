@@ -1,0 +1,489 @@
+/* Blinkie-style theme */
+:root {
+    --page-bg: #ffffff;
+    --lavender: #eee5ff;
+    --lavender-2: #e5d9ff;
+    --purple: #6f47ff;
+    --purple-muted: rgba(111, 71, 255, 0.55);
+    --ink: #0b0b0f;
+    --ink-muted: rgba(11, 11, 15, 0.55);
+    --tile-bg: rgba(111, 71, 255, 0.08);
+    --tile-bg-hover: rgba(111, 71, 255, 0.12);
+    --tile-bg-active: rgba(111, 71, 255, 0.20);
+    --divider: rgba(111, 71, 255, 0.0);
+    /* No rounding anywhere (per design) */
+    --radius-xl: 0px;
+    --radius-lg: 0px;
+    --radius-md: 0px;
+    --shadow-soft: none;
+    --footer-bg: #111114;
+    --footer-ink: #ffffff;
+    --transition-fast: 140ms ease;
+    --transition-smooth: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@font-face {
+    font-family: "Degular";
+    src: url("Degular/Desktop/Degular-Semibold.otf") format("opentype");
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Degular Display";
+    src: url("Degular Display/Desktop/DegularDisplay-Bold.otf") format("opentype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Degular", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--page-bg);
+    color: var(--ink);
+    min-height: 100vh;
+    margin: 0;
+}
+
+.app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.top {
+    flex: 1;
+    display: grid;
+    /* Keep vertical padding in a 40/60 ratio (top/bottom) */
+    grid-template-rows: 2fr auto 3fr;
+    align-items: stretch;
+    justify-items: center;
+    padding: 3rem 3rem 2rem;
+}
+
+.layout {
+    width: min(1200px, 100%);
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    column-gap: 5rem;
+    align-items: start;
+    justify-content: center;
+    grid-row: 2;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.hero-title {
+    font-size: clamp(3rem, 4.8vw, 4.6rem);
+    line-height: 0.9;
+    /* Looser tracking (kerning) to match reference */
+    letter-spacing: -0.005em;
+    font-weight: 800;
+    font-family: "Degular Display", "Degular", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-weight: 700;
+}
+
+.hero-line {
+    display: block;
+    font-size: 56px;
+    letter-spacing: 0.015em;
+}
+
+.hero-black {
+    color: var(--ink);
+}
+
+.hero-accent {
+    color: var(--purple);
+}
+
+.hero-sub {
+    margin-top: 24px;
+    max-width: 18ch;
+    font-size: 18px;
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    color: var(--purple-muted);
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.state-toggles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(86px, 1fr));
+    gap: 0;
+    border-radius: 0;
+    overflow: hidden;
+    background: var(--lavender);
+    box-shadow: none;
+}
+
+.state-toggle {
+    cursor: pointer;
+}
+
+.state-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tile {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    min-height: 110px;
+    border-radius: 0;
+    background: rgba(255, 255, 255, 0.0);
+    box-shadow: none;
+    transition: var(--transition-fast);
+    font-weight: 700;
+    font-size: 1.45rem;
+    color: rgba(111, 71, 255, 0.45);
+    border-right: none;
+    border-bottom: none;
+}
+
+.state-toggle:nth-child(3n) .tile {
+    border-right: none;
+}
+
+.state-toggle:nth-last-child(-n + 3) .tile {
+    border-bottom: none;
+}
+
+.state-toggle:hover .tile {
+    background: rgba(111, 71, 255, 0.08);
+    transform: none;
+}
+
+.state-toggle input:checked + .tile {
+    background: var(--tile-bg-active);
+    color: var(--purple);
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.current-state {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.current-state .label {
+    color: var(--ink-muted);
+}
+
+.current-state .value {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.bg-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.85rem;
+}
+
+.segmented {
+    display: inline-flex;
+    background: rgba(111, 71, 255, 0.10);
+    border: none; /* no stroke */
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.segmented label {
+    cursor: pointer;
+}
+
+.segmented input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.segmented span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(111, 71, 255, 0.70);
+    border-right: none;
+    transition: var(--transition-fast);
+    user-select: none;
+}
+
+.segmented label:last-child span {
+    border-right: none;
+}
+
+.segmented input:checked + span {
+    background: rgba(111, 71, 255, 0.18);
+    color: rgba(111, 71, 255, 0.92);
+}
+
+.bg-color-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.7rem;
+    background: var(--bgpill, rgba(111, 71, 255, 0.10));
+    border: none; /* no stroke */
+    border-radius: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(11, 11, 15, 0.85);
+    user-select: none;
+    cursor: pointer;
+    position: relative;
+}
+
+.bg-color-pill.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Hide the native color input but keep it functional (clicking the pill opens it). */
+.bg-color-pill input[type="color"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.bg-color-pill.is-disabled input[type="color"] {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.debug {
+    margin-top: 0.5rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 0;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.28);
+    color: rgba(0, 0, 0, 0.80);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.right {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.stage {
+    border-radius: 0;
+    background: var(--lavender);
+    box-shadow: none;
+    padding: 0; /* no inset border; stage itself is the background */
+    position: relative;
+    transition: var(--transition-smooth);
+    user-select: none;
+    /* JS will set --stage-size so the square matches left column height */
+    width: var(--stage-size, 520px);
+    height: var(--stage-size, 520px);
+    border: none; /* no stroke */
+    outline: none; /* no stroke */
+}
+
+.stage:focus-visible { outline: none; }
+
+.lottie-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 1; /* ensure eyes container is square */
+    border: none; /* ensure no stroke */
+    background: transparent; /* stage owns the background */
+}
+
+#lottie-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Background modes (applied to the stage itself — prevents inset borders) */
+.stage[data-bg="solid"] {
+    background: var(--solid-bg, var(--lavender));
+}
+
+.stage[data-bg="checker"] {
+    background:
+        linear-gradient(45deg, rgba(0,0,0,0.08) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(0,0,0,0.08) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(0,0,0,0.08) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(0,0,0,0.08) 75%);
+    background-size: 22px 22px;
+    background-position: 0 0, 0 11px, 11px -11px, -11px 0px;
+    background-color: var(--lavender);
+}
+
+.loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    background: rgba(238, 229, 255, 0.75);
+    color: rgba(11, 11, 15, 0.75);
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: var(--transition-smooth);
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(0, 0, 0, 0.18);
+    border-top-color: rgba(0, 0, 0, 0.75);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Drag and drop styles */
+.stage.drag-over {
+    transform: translateY(-2px);
+    box-shadow: none;
+}
+
+.stage.drag-over .lottie-container::after {
+    content: 'Drop your .lottie file here';
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.12);
+    color: rgba(0, 0, 0, 0.85);
+    font-size: 1rem;
+    font-weight: 800;
+    border: 3px dashed rgba(0, 0, 0, 0.35);
+    border-radius: 0;
+    margin: 0;
+}
+
+.footer {
+    background: var(--footer-bg);
+    color: rgba(255, 255, 255, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 1.25rem 2rem;
+    height: 6vh;
+    min-height: 56px;
+}
+
+.footer-left {
+    display: none; /* ref has only the logo on the right */
+}
+
+.footer code {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255, 255, 255, 0.10);
+    padding: 0.15rem 0.45rem;
+    border-radius: 0;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.footer-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.footer-logo {
+    width: min(320px, 38vw);
+    height: 80%;
+    background: var(--footer-ink);
+    -webkit-mask: url("computer logo.svg") no-repeat center / contain;
+    mask: url("computer logo.svg") no-repeat center / contain;
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+    .top {
+        padding: 2rem 1.5rem 1.25rem;
+    }
+
+    .layout {
+        width: 100%;
+        grid-template-columns: 1fr;
+        row-gap: 2rem;
+        column-gap: 0;
+        justify-items: center;
+    }
+
+    .left {
+        width: min(520px, 100%);
+    }
+
+    .right {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 520px) {
+    .state-toggles {
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
+    }
+
+    .tile {
+        min-height: 104px;
+        font-size: 1.25rem;
+    }
+
+    .footer {
+        padding: 1.1rem 1.25rem;
+        min-height: 56px;
+    }
+}
+

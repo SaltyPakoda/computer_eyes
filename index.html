@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie State Machine Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <div class="top">
+            <div class="layout">
+                <section class="left">
+                    <header class="hero">
+                        <h1 class="hero-title" aria-label="Computer Animations">
+                            <span class="hero-line hero-black">Computer</span>
+                            <span class="hero-line hero-accent">Animations</span>
+                        </h1>
+                        <p class="hero-sub">Made using After Effects &amp; Lottie State Machine</p>
+                    </header>
+
+                    <div class="panel">
+                        <div class="state-toggles" role="radiogroup" aria-label="Animation states">
+                            <label class="state-toggle">
+                                <input type="radio" name="state" value="Base" checked>
+                                <span class="tile">Base</span>
+                            </label>
+                            <label class="state-toggle">
+                                <input type="radio" name="state" value="Peek">
+                                <span class="tile">Peek</span>
+                            </label>
+                            <label class="state-toggle">
+                                <input type="radio" name="state" value="Think">
+                                <span class="tile">Think</span>
+                            </label>
+                            <label class="state-toggle">
+                                <input type="radio" name="state" value="Reply">
+                                <span class="tile">Reply</span>
+                            </label>
+                            <label class="state-toggle">
+                                <input type="radio" name="state" value="Wink">
+                                <span class="tile">Wink</span>
+                            </label>
+                            <label class="state-toggle">
+                                <input type="radio" name="state" value="Error">
+                                <span class="tile">Error</span>
+                            </label>
+                        </div>
+
+                        <div class="meta">
+                            <div class="current-state">
+                                <span class="label">Current:</span>
+                                <span class="value" id="current-state">Base</span>
+                            </div>
+
+                            <div class="bg-row" aria-label="Background controls">
+                                <div class="segmented" role="radiogroup" aria-label="Background mode">
+                                    <label>
+                                        <input type="radio" name="bg-mode" value="checker">
+                                        <span>Checker</span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="bg-mode" value="solid" checked>
+                                        <span>Solid</span>
+                                    </label>
+                                </div>
+                                <label class="bg-color-pill" aria-label="Background color (click to change)">
+                                    <span>Bg</span>
+                                    <input id="bg-color" type="color" value="#eee5ff" aria-label="Background color">
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="debug" id="debug" hidden></div>
+                    </div>
+                </section>
+
+                <section class="right">
+                    <div class="stage" aria-label="Lottie stage.">
+                        <div class="lottie-container">
+                            <canvas id="lottie-canvas"></canvas>
+                            <div class="loading-overlay" id="loading">
+                                <div class="spinner"></div>
+                                <span>Loading animation...</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <div class="footer-left"></div>
+            <div class="footer-right" aria-label="computer logo">
+                <div class="footer-logo"></div>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
+
