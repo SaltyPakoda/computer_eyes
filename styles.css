@@ -86,7 +86,8 @@ body {
 
 .hero-title {
     font-size: clamp(3rem, 4.8vw, 4.6rem);
-    line-height: 0.9;
+    /* Browser tweak: 43.2px -> 42.5px at 48px font-size (~0.8854167) */
+    line-height: 0.8854167;
     /* Looser tracking (kerning) to match reference */
     letter-spacing: -0.005em;
     font-weight: 800;
@@ -124,14 +125,28 @@ body {
     gap: 1.25rem;
 }
 
+.state-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
 .state-toggles {
     display: grid;
-    grid-template-columns: repeat(3, minmax(86px, 1fr));
+    --state-cols: 3;
+    grid-template-columns: repeat(var(--state-cols), minmax(86px, 1fr));
     gap: 0;
     border-radius: 0;
     overflow: hidden;
     background: var(--lavender);
     box-shadow: none;
+}
+
+.state-toggles-boot {
+    /* Single-tile row that matches the width of one tile in the grid above */
+    grid-template-columns: 1fr;
+    width: calc(100% / var(--state-cols));
+    align-self: flex-start;
 }
 
 .state-toggle {
@@ -473,7 +488,8 @@ body {
 
 @media (max-width: 520px) {
     .state-toggles {
-        grid-template-columns: repeat(2, minmax(110px, 1fr));
+        --state-cols: 2;
+        grid-template-columns: repeat(var(--state-cols), minmax(110px, 1fr));
     }
 
     .tile {

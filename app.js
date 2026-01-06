@@ -20,21 +20,41 @@ let dotLottie = null;
 let pendingState = null;
 let bgMode = 'solid';
 let bgColor = '#eee5ff';
-let uiHighlightLock = null; // { state: 'Base' | 'Peek' | 'Think' | 'Reply' | 'Wink' | 'Error', expiresAt: number, reachedAt: number | null, mode: 'stable' | 'reach' }
+let uiHighlightLock = null; // { state: 'Base' | 'Boot' | 'Peek' | 'Think' | 'Reply' | 'Wink' | 'Error', expiresAt: number, reachedAt: number | null, mode: 'stable' | 'leave' | 'reach' }
+let lastObservedUiState = 'Base';
+let pendingAfterTransientState = null; // string state value to re-apply after Boot/Wink returns to Base
+let scheduledStateRetry = null; // timeout id
+let scheduledStateRetryFor = null; // string
+let lastRequestedState = null;
+let lastWasmRecoveryAt = 0;
+
+function getMachineStateName(machineState) {
+    if (typeof machineState === 'string') return machineState;
+    if (machineState && typeof machineState === 'object') {
+        // Common event payload shapes across runtimes:
+        // { name: 'Load_Loop_Out' }, { id: 'Think_Loop' }, etc.
+        if (typeof machineState.name === 'string') return machineState.name;
+        if (typeof machineState.id === 'string') return machineState.id;
+        if (typeof machineState.state === 'string') return machineState.state;
+    }
+    return String(machineState || '');
+}
 
 function normalizeUiStateFromMachineState(machineState) {
-    const s = String(machineState || '');
+    const s = getMachineStateName(machineState);
     const u = s.toLowerCase();
 
-    // Map common prefixes/variants to the UI's 6 states.
+    // Map common prefixes/variants to the UI's states.
     // Examples:
     // - Peek, Peek_Loop_In, Peek_Loop, Peek_Loop_Out → Peek
     // - Think_*, Reply_* → Think / Reply
-    // - Load_Loop_* (machine internal) → Think
+    // - Loading_Loop_* / Load_* (machine internal) → Think
     // - Eyes_Base, Base_* → Base
+    if (u.includes('boot')) return 'Boot';
     if (u.includes('peek')) return 'Peek';
-    // In this file, "Load_Loop" and related internal states are part of the Think flow.
-    if (u.includes('load')) return 'Think';
+    // In this file, "Loading_Loop" / "Load_*" internal states are part of the Think flow.
+    if (u.includes('loading')) return 'Think';
+    if (u.includes('load_loop') || u.includes('loadloop') || u.includes('load')) return 'Think';
     if (u.includes('think')) return 'Think';
     if (u.includes('reply')) return 'Reply';
     if (u.includes('wink')) return 'Wink';
@@ -49,6 +69,7 @@ function syncStateUI(state) {
 
     // Keep the radio highlight stable by mapping multiple internal states to one UI state.
     const uiState = normalizeUiStateFromMachineState(state);
+    lastObservedUiState = uiState;
 
     // Keep highlight pinned to the user-selected UI state while the state machine
     // runs transient states (ex: previousState_Loop_Out) during transitions.
@@ -63,23 +84,30 @@ function syncStateUI(state) {
     // Mode:
     // - stable: unlock only after the machine has stayed in the requested bucket for
     //   STABLE_MS continuously (prevents "bounce back" highlighting the old state).
-    // - reach: unlock immediately once the requested bucket is reached at least once
-    //   (useful for short-lived states like Wink that auto-return to Base).
+    // - leave: once the requested bucket is reached, unlock as soon as we *leave* it
+    //   (useful for transient states like Boot/Wink that auto-return to Base).
+    // - reach: unlock immediately once the requested bucket is reached at least once.
     const STABLE_MS = 650;
     if (uiHighlightLock) {
         if (uiState === uiHighlightLock.state) {
             if (uiHighlightLock.reachedAt == null) uiHighlightLock.reachedAt = now;
             if (uiHighlightLock.mode === 'reach') {
                 uiHighlightLock = null;
-            } else if (now - uiHighlightLock.reachedAt >= STABLE_MS) {
+            } else if (uiHighlightLock.mode === 'stable' && now - uiHighlightLock.reachedAt >= STABLE_MS) {
                 uiHighlightLock = null;
             }
         } else {
             // If we haven't reached the requested bucket yet, keep waiting.
-            // If we *did* reach it but left before the stable window, reset the timer
-            // but keep the lock so old-state loop_out transitions can't steal highlight.
+            // If we *did* reach it but left before the stable window, keep the lock
+            // so old-state loop_out transitions can't steal highlight.
             if (uiHighlightLock.mode === 'stable') {
                 uiHighlightLock.reachedAt = null;
+            }
+
+            // For transient states, once we've reached the requested bucket, unlock
+            // immediately upon leaving it so the UI can reflect the next real state.
+            if (uiHighlightLock && uiHighlightLock.mode === 'leave' && uiHighlightLock.reachedAt != null) {
+                uiHighlightLock = null;
             }
         }
     }
@@ -93,7 +121,16 @@ function syncStateUI(state) {
 
     // Update the visible "Current" label
     // Show the actual internal state name for debugging/clarity.
-    if (currentStateDisplay) currentStateDisplay.textContent = String(state);
+    if (currentStateDisplay) currentStateDisplay.textContent = getMachineStateName(state);
+
+    // If the user clicked a different state while a transient state (Boot/Wink) was running,
+    // the machine may force the "State" input back to Base at the end of the animation.
+    // Re-apply the user's selection once we observe the machine back in the Base bucket.
+    if (pendingAfterTransientState && uiState === 'Base') {
+        const next = pendingAfterTransientState;
+        pendingAfterTransientState = null;
+        setStateMachineInput(next);
+    }
 }
 
 function applyBackground(mode, color) {
@@ -319,15 +356,30 @@ async function initLottie({ src, data, fileName } = {}) {
 }
 
 // Set state machine input
-function setStateMachineInput(state) {
+function setStateMachineInput(state, options = {}) {
     if (!dotLottie) return;
 
     try {
+        const { retryAttempt = 0, isRetry = false } = options;
+
+        // If the user made a new selection, cancel any pending retries for older values.
+        if (!isRetry && scheduledStateRetry) {
+            clearTimeout(scheduledStateRetry);
+            scheduledStateRetry = null;
+            scheduledStateRetryFor = null;
+        }
+
+        // Track the last desired state so we can recover gracefully if the WASM engine crashes.
+        if (!isRetry) lastRequestedState = state;
+
         const requestedUiState = normalizeUiStateFromMachineState(state);
         // Pin the UI highlight to the *requested* state until we actually reach it (or timeout).
         // This prevents flicker when the machine briefly enters previousState_*_Loop_Out states.
-        const lockMode = requestedUiState === 'Wink' ? 'reach' : 'stable';
-        uiHighlightLock = { state: requestedUiState, expiresAt: Date.now() + 2500, reachedAt: null, mode: lockMode };
+        const lockMode = (requestedUiState === 'Wink' || requestedUiState === 'Boot') ? 'leave' : 'stable';
+        // Transitions can be long (especially Think which uses internal `load_*` states),
+        // so keep the lock alive long enough that previous-state `*_Loop_Out` doesn't
+        // steal the highlight mid-transition.
+        uiHighlightLock = { state: requestedUiState, expiresAt: Date.now() + 8000, reachedAt: null, mode: lockMode };
 
         // dotlottie-web@0.58.x uses `stateMachineSet*Input` APIs.
         // Your input name is "State" (case-sensitive).
@@ -353,6 +405,21 @@ function setStateMachineInput(state) {
 
             const ok = dotLottie.stateMachineSetStringInput('State', state);
             if (ok === false) {
+                // Some files/runtime versions temporarily reject inputs during transitions.
+                // Instead of failing immediately, retry a few times with backoff.
+                const MAX_RETRIES = 8;
+                if (retryAttempt < MAX_RETRIES) {
+                    const delay = Math.min(900, Math.round(90 * Math.pow(1.55, retryAttempt)));
+                    scheduledStateRetryFor = state;
+                    scheduledStateRetry = setTimeout(() => {
+                        // Only retry if we haven't been superseded by another selection.
+                        if (scheduledStateRetryFor === state) {
+                            setStateMachineInput(state, { retryAttempt: retryAttempt + 1, isRetry: true });
+                        }
+                    }, delay);
+                    return;
+                }
+
                 // Provide a more useful error showing available inputs if possible.
                 if (typeof dotLottie.stateMachineGetInputs === 'function') {
                     const inputs = dotLottie.stateMachineGetInputs();
@@ -389,6 +456,32 @@ function setStateMachineInput(state) {
         console.log(`State changed to: ${state}`);
     } catch (error) {
         console.error('Error setting state:', error);
+        // dotlottie-web is WASM-backed; occasionally it can crash with a memory OOB error.
+        // When that happens, the instance may be corrupted. Stop retries and reload once.
+        const msg = String(error?.message || error || '');
+        if (/memory access out of bounds/i.test(msg)) {
+            if (scheduledStateRetry) {
+                clearTimeout(scheduledStateRetry);
+                scheduledStateRetry = null;
+                scheduledStateRetryFor = null;
+            }
+            pendingAfterTransientState = null;
+
+            const now = Date.now();
+            const COOLDOWN_MS = 10_000;
+            if (now - lastWasmRecoveryAt >= COOLDOWN_MS) {
+                lastWasmRecoveryAt = now;
+                // Re-apply after reload using the existing "pendingState" mechanism.
+                pendingState = lastRequestedState || null;
+                showDebug(`Renderer crashed (WASM memory OOB). Reloading animation…`);
+                try {
+                    initLottie({ src: './CSM.lottie', fileName: 'CSM.lottie' });
+                    return;
+                } catch (e) {
+                    console.error('Recovery reload failed:', e);
+                }
+            }
+        }
         showDebug(`State set error: ${error?.message || error}`);
     }
 }
@@ -406,7 +499,17 @@ function showLoading(show) {
 stateRadios.forEach(radio => {
     radio.addEventListener('change', (e) => {
         if (e.target.checked) {
-            setStateMachineInput(e.target.value);
+            const requested = e.target.value;
+            const requestedUi = normalizeUiStateFromMachineState(requested);
+
+            // If Boot/Wink is in progress and the machine auto-returns to Base,
+            // queue the user's selection so it gets applied after that return.
+            if ((lastObservedUiState === 'Boot' || lastObservedUiState === 'Wink') && requestedUi !== lastObservedUiState) {
+                pendingAfterTransientState = requested;
+            } else {
+                pendingAfterTransientState = null;
+            }
+            setStateMachineInput(requested);
         }
     });
 });
